@@ -26,7 +26,7 @@ def is_list(line):
 
 
 def is_table(line):
-  return re.match('^||.*||$', line)
+  return re.match('^\|\|.*\|\|$', line)
 
 
 def parse_header(line, level=0):
@@ -40,6 +40,11 @@ def parse_list_item(line):
   m = re.match('^(\s*)(\*|#)\s+(.*)$', line)
   a, b, c = m.groups()
   return len(a), {'*': 'ul', '#': 'ol'}[b], c
+
+
+def parse_table_row(line):
+  m = re.match('^\|\|(.*)\|\|$', line)
+  return m.group(1).split('||')
 
 
 def create_document():
@@ -138,7 +143,14 @@ def _process_body(document, lines):
         create_and_append_element(document, section, header_type, header_text)
         context = section
       elif is_table(line): # handle tables
-        pass
+        if context.tagName != 'table':
+          context.appendChild(document.createElement('table'))
+          context = context.lastChild
+        context.appendChild(document.createElement('tr'))
+        for cell_text in parse_table_row(line):
+          context.lastChild.appendChild(document.createElement('td'))
+          context.lastChild.lastChild.appendChild(
+                                            document.createTextNode(cell_text))
       elif is_list(line): # LISTS!
         list_indent, list_type, item_text = parse_list_item(line)
         """IF we're in a higher list, get the hell out!
