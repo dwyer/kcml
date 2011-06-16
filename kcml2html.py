@@ -10,7 +10,7 @@ from xml.dom.minidom import parseString
 
 
 META_TAGS = ['author', 'description', 'keywords']
-LINK_RELS = ['icon', 'stylesheet']
+LINK_RELS = ['generator', 'icon', 'stylesheet']
 SECTION_TAGS = ['body', 'section']
 HEADER_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 LIST_TAGS = ['ol', 'ul']
@@ -116,7 +116,12 @@ def parse_kcml(kcml, indent=2):
 
 
 def _process_head(document, lines):
-  pragmas = {}
+  pragmas = {
+      'language': 'en',
+      'charset': 'utf-8',
+      'title': 'Untitled',
+      'generator': 'kcml2html.py',
+      }
   while lines:
     m = re.match('#(\S+)\s(.*)', lines[0])
     if m:
@@ -125,14 +130,14 @@ def _process_head(document, lines):
     else:
       break
     lines.pop(0)
-  # meta charset is required
-  charset = pragmas.get('charset', 'utf-8')
+  # handle language
+  document.head.setAttribute('lang', pragmas['language'])
+  # handle meta charset
   document.head.appendChild(document.createElement('meta'))
-  document.head.lastChild.setAttribute('charset', charset)
-  # title is required
-  title = pragmas.get('title', 'Unknown')
+  document.head.lastChild.setAttribute('charset', pragmas['charset'])
+  # handle title
   document.head.appendChild(document.createElement('title'))
-  document.head.lastChild.appendChild(document.createTextNode(title))
+  document.head.lastChild.appendChild(document.createTextNode(pragmas['title']))
   # handle supported meta tags
   for name in META_TAGS:
     if name in pragmas:
