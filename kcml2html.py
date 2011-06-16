@@ -38,12 +38,6 @@ def create_document():
   # head
   document.html.appendChild(document.createElement('head'))
   document.head = document.html.lastChild
-  # meta charset
-  document.head.appendChild(document.createElement('meta'))
-  document.head.lastChild.setAttribute('charset', 'utf-8')
-  # title
-  document.head.appendChild(document.createElement('title'))
-  document.head.lastChild.appendChild(document.createTextNode('untitled'))
   # body
   document.html.appendChild(document.createElement('body'))
   document.body = document.html.lastChild
@@ -66,9 +60,42 @@ def create_and_append_element(document, parent, tagName, text=None):
 
 def parse_kcml(kcml):
   document = create_document()
-  section = document.body
-  context = section
   lines = kcml.splitlines()
+  _process_head(document, document.head, lines)
+  _process_body(document, document.body, lines)
+  xml = document.toprettyxml()
+  return xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
+
+
+def _process_head(document, head, lines):
+  pragmas = {}
+  while lines:
+    m = re.match('#(\S+)\s(.*)', lines[0])
+    if m:
+      key, value = m.groups()
+      pragmas[key] = value
+    else:
+      break
+    lines.pop(0)
+  # meta charset is required
+  charset = pragmas.get('charset', 'utf-8')
+  head.appendChild(document.createElement('meta'))
+  head.lastChild.setAttribute('charset', charset)
+  # title is required
+  title = pragmas.get('title', 'Unknown')
+  head.appendChild(document.createElement('title'))
+  head.lastChild.appendChild(document.createTextNode(title))
+  # handle supported meta tags
+  for name in ['author', 'description', 'keywords']:
+    if name in pragmas:
+      head.appendChild(document.createElement('meta'))
+      head.lastChild.setAttribute('name', name)
+      head.lastChild.setAttribute('content', pragmas[name])
+      
+
+
+def _process_body(document, section, lines):
+  context = section
   level = 0
   for line in lines:
     if line:
@@ -76,7 +103,7 @@ def parse_kcml(kcml):
         # when we encounter a header, we must change the section
         header_level, header_type, header_text = parse_header(line)
         while level >= header_level:
-          section = parent.parentNode
+          section = section.parentNode
           level = level - 1
         while level < header_level:
           create_and_append_element(document, section, 'section')
@@ -108,15 +135,13 @@ def parse_kcml(kcml):
         context.appendChild(child)
     else:
       context = section
-  xml = document.toprettyxml()
-  html = xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
-  print html
 
 
 def main(*args):
   for path in args:
     with open(path) as f:
-      parse(f.read())
+      html = parse_kcml(f.read())
+      print html
       f.close()
 
 
