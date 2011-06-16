@@ -25,6 +25,10 @@ def is_list(line):
   return re.match('^\s*[\*|#]\s+', line) != None
 
 
+def is_table(line):
+  return re.match('^||.*||$', line)
+
+
 def parse_header(line, level=0):
   if is_header(line):
     return parse_header(line[1:-1], level+1)
@@ -121,7 +125,7 @@ def _process_body(document, lines):
   level = 0
   for line in lines:
     if line and not is_comment(line):
-      if is_header(line):
+      if is_header(line): # handle headers
         # when we encounter a header, we must change the section
         header_level, header_type, header_text = parse_header(line)
         while level >= header_level:
@@ -133,6 +137,8 @@ def _process_body(document, lines):
           level = level + 1
         create_and_append_element(document, section, header_type, header_text)
         context = section
+      elif is_table(line): # handle tables
+        pass
       elif is_list(line): # LISTS!
         list_indent, list_type, item_text = parse_list_item(line)
         """IF we're in a higher list, get the hell out!
