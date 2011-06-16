@@ -13,6 +13,10 @@ LIST_TAGS = ['ol', 'ul']
 ITEM_TAG = 'li'
 
 
+def is_comment(line):
+  return len(line) >= 2 and line[0] == line[1] == '/'
+
+
 def is_header(line):
   return line[0] == line[-1] == '='
 
@@ -68,7 +72,14 @@ def parse_kcml(kcml, indent=2):
   xml = document.toprettyxml(indent=' '*indent) if indent else document.toxml()
   html = xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
   html = re.sub('\[(\S+) (.*?)\]', r'<a href="\1">\2</a>', html)
+  html = re.sub('\[(\S+)\]', r'<a href="\1">\1</a>', html)
   html = re.sub('_(.*?)_', r'<i>\1</i>', html)
+  html = re.sub('\*(.*?)\*', r'<b>\1</b>', html)
+  html = re.sub('`(.*?)`', r'<code>\1</code>', html)
+  html = re.sub('{{{(.*?)}}}', r'<code>\1</code>', html)
+  html = re.sub('\^(.*?)\^', r'<sup>\1</sup>', html)
+  html = re.sub(',,(.*?),,', r'<sub>\1</sub>', html)
+  html = re.sub('~~(.*?)~~', r'<s>\1</s>', html)
   return html
 
 
@@ -109,7 +120,7 @@ def _process_body(document, lines):
   context = section
   level = 0
   for line in lines:
-    if line:
+    if line and not is_comment(line):
       if is_header(line):
         # when we encounter a header, we must change the section
         header_level, header_type, header_text = parse_header(line)
