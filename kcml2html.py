@@ -17,8 +17,11 @@ LIST_TAGS = ['ol', 'ul']
 ITEM_TAG = 'li'
 
 
-def encode_url(link, text=None, url=None):
-  return '<a href="%s">%s</a>' % (url or link, text or link or url)
+def encode_url(url, text=None):
+  if url.split('.')[-1].lower() in ['gif', 'jpg', 'png']:
+    return '<img src="%s" alt="%s"/>' % (url, text or url)
+  else:
+    return '<a href="%s">%s</a>' % (url, text or url)
 
 
 def escape_special_chars(text):
@@ -92,7 +95,7 @@ def create_and_append_element(document, parent, tagName, text=None):
     parent.lastChild.appendChild(document.createTextNode(text))
 
 
-def parse_kcml(kcml, indent=2):
+def parse_kcml(kcml, indent=0):
   document = create_document()
   lines = kcml.splitlines()
   _process_head(document, lines)
@@ -100,8 +103,7 @@ def parse_kcml(kcml, indent=2):
   xml = document.toprettyxml(indent=' '*indent) if indent else document.toxml()
   html = xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
   # handle links
-  helper = lambda m: encode_url(*m.groups())
-  html = re.sub('\[(\S+)(\s?.*?)\]', helper, html)
+  html = re.sub('\[([^\s^\]]+)(\s?.*?)\]', lambda m: encode_url(*m.groups()), html)
   # escape code; todo: compile {{{...}}} at process time
   escape = lambda m: '<code>%s</code>' % escape_special_chars(m.group(1))
   html = re.sub('`(.*?)`', escape, html)
