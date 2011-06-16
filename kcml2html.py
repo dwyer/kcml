@@ -150,6 +150,10 @@ def _process_head(document, lines):
       document.head.appendChild(document.createElement('link'))
       document.head.lastChild.setAttribute('rel', rel)
       document.head.lastChild.setAttribute('href', pragmas[rel])
+  for script in pragmas.get('scripts', '').split():
+    document.head.appendChild(document.createElement('script'))
+    document.head.lastChild.setAttribute('src', script)
+    document.head.lastChild.appendChild(document.createTextNode(''))
 
 
 def _process_body(document, lines):
