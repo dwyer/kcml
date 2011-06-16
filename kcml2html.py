@@ -5,6 +5,8 @@ import os, re, sys
 from xml.dom.minidom import parseString
 
 
+META_TAGS = ['author', 'description', 'keywords']
+LINK_RELS = ['icon', 'stylesheet']
 SECTION_TAGS = ['body', 'section']
 HEADER_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 LIST_TAGS = ['ol', 'ul']
@@ -58,16 +60,19 @@ def create_and_append_element(document, parent, tagName, text=None):
     parent.lastChild.appendChild(document.createTextNode(text))
 
 
-def parse_kcml(kcml):
+def parse_kcml(kcml, indent=2):
   document = create_document()
   lines = kcml.splitlines()
-  _process_head(document, document.head, lines)
-  _process_body(document, document.body, lines)
-  xml = document.toprettyxml()
-  return xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
+  _process_head(document, lines)
+  _process_body(document, lines)
+  xml = document.toprettyxml(indent=' '*indent) if indent else document.toxml()
+  html = xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
+  html = re.sub('\[(\S+) (.*?)\]', r'<a href="\1">\2</a>', html)
+  html = re.sub('_(.*?)_', r'<i>\1</i>', html)
+  return html
 
 
-def _process_head(document, head, lines):
+def _process_head(document, lines):
   pragmas = {}
   while lines:
     m = re.match('#(\S+)\s(.*)', lines[0])
@@ -79,22 +84,28 @@ def _process_head(document, head, lines):
     lines.pop(0)
   # meta charset is required
   charset = pragmas.get('charset', 'utf-8')
-  head.appendChild(document.createElement('meta'))
-  head.lastChild.setAttribute('charset', charset)
+  document.head.appendChild(document.createElement('meta'))
+  document.head.lastChild.setAttribute('charset', charset)
   # title is required
   title = pragmas.get('title', 'Unknown')
-  head.appendChild(document.createElement('title'))
-  head.lastChild.appendChild(document.createTextNode(title))
+  document.head.appendChild(document.createElement('title'))
+  document.head.lastChild.appendChild(document.createTextNode(title))
   # handle supported meta tags
-  for name in ['author', 'description', 'keywords']:
+  for name in META_TAGS:
     if name in pragmas:
-      head.appendChild(document.createElement('meta'))
-      head.lastChild.setAttribute('name', name)
-      head.lastChild.setAttribute('content', pragmas[name])
-      
+      document.head.appendChild(document.createElement('meta'))
+      document.head.lastChild.setAttribute('name', name)
+      document.head.lastChild.setAttribute('content', pragmas[name])
+  # handle supported link relations
+  for rel in LINK_RELS:
+    if rel in pragmas:
+      document.head.appendChild(document.createElement('link'))
+      document.head.lastChild.setAttribute('rel', rel)
+      document.head.lastChild.setAttribute('href', pragmas[rel])
 
 
-def _process_body(document, section, lines):
+def _process_body(document, lines):
+  section = document.body
   context = section
   level = 0
   for line in lines:
