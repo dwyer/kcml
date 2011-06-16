@@ -70,12 +70,13 @@ def parse_table_row(line):
 
 
 def create_document():
+  """Create an XML document with an <html> tag containing <head> and <body>
+  tags
+  """
   document = parseString('<html/>')
   document.html = document.lastChild
-  # head
   document.html.appendChild(document.createElement('head'))
   document.head = document.html.lastChild
-  # body
   document.html.appendChild(document.createElement('body'))
   document.body = document.html.lastChild
   return document
@@ -176,15 +177,6 @@ def _process_body(document, lines):
           level = level + 1
         create_and_append_element(document, section, header_type, header_text)
         context = section
-      elif is_table(line): # handle tables
-        if context.tagName != 'table':
-          context.appendChild(document.createElement('table'))
-          context = context.lastChild
-        context.appendChild(document.createElement('tr'))
-        for cell_text in parse_table_row(line):
-          context.lastChild.appendChild(document.createElement('td'))
-          context.lastChild.lastChild.appendChild(
-                                            document.createTextNode(cell_text))
       elif is_list(line): # LISTS!
         list_indent, list_type, item_text = parse_list_item(line)
         """IF we're in a higher list, get the hell out!
@@ -201,6 +193,18 @@ def _process_body(document, lines):
           context = context.lastChild
           context.indent = list_indent
         create_and_append_element(document, context, 'li', item_text)
+      elif is_table(line): # handle tables
+        if context.tagName != 'table':
+          context.appendChild(document.createElement('table'))
+          context = context.lastChild
+        context.appendChild(document.createElement('tr'))
+        for cell_text in parse_table_row(line):
+          context.lastChild.appendChild(document.createElement('td'))
+          context.lastChild.lastChild.appendChild(
+                                            document.createTextNode(cell_text))
+      elif line == '----':
+        context = section
+        context.appendChild(document.createElement('hr'))
       else:
         child = document.createTextNode(line)
         if context == section:
