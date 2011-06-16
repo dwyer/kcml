@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# TODO LIST:
+# table of contents
+# blockquotes
+
 import os, re, sys
 
 from xml.dom.minidom import parseString
@@ -13,8 +17,23 @@ LIST_TAGS = ['ol', 'ul']
 ITEM_TAG = 'li'
 
 
+def encode_url(link, text=None, url=None):
+  return '<a href="%s">%s</a>' % (url or link, text or link or url)
+
+
+def escape_special_chars(text):
+  """Replaces certain characters with their HTML entity equivalents"""
+  for char in '_*^,~`{}':
+    text = re.sub('\%s' % char, '&#%d;' % ord(char), text)
+  return text
+
+
+def is_code_block(line):
+  return line == '{{{'
+
+
 def is_comment(line):
-  return len(line) >= 2 and line[0] == line[1] == '/'
+  return re.match('^//', line)
 
 
 def is_header(line):
@@ -80,12 +99,16 @@ def parse_kcml(kcml, indent=2):
   _process_body(document, lines)
   xml = document.toprettyxml(indent=' '*indent) if indent else document.toxml()
   html = xml.replace('<?xml version="1.0" ?>', '<!DOCTYPE html>')
-  html = re.sub('\[(\S+) (.*?)\]', r'<a href="\1">\2</a>', html)
-  html = re.sub('\[(\S+)\]', r'<a href="\1">\1</a>', html)
+  # handle links
+  helper = lambda m: encode_url(*m.groups())
+  html = re.sub('\[(\S+)(\s?.*?)\]', helper, html)
+  # escape code; todo: compile {{{...}}} at process time
+  escape = lambda m: '<code>%s</code>' % escape_special_chars(m.group(1))
+  html = re.sub('`(.*?)`', escape, html)
+  html = re.sub('\{\{\{(.*?)\}\}\}', escape, html, flags=re.M|re.S)
+  # handle typeface
   html = re.sub('_(.*?)_', r'<i>\1</i>', html)
   html = re.sub('\*(.*?)\*', r'<b>\1</b>', html)
-  html = re.sub('`(.*?)`', r'<code>\1</code>', html)
-  html = re.sub('{{{(.*?)}}}', r'<code>\1</code>', html)
   html = re.sub('\^(.*?)\^', r'<sup>\1</sup>', html)
   html = re.sub(',,(.*?),,', r'<sub>\1</sub>', html)
   html = re.sub('~~(.*?)~~', r'<s>\1</s>', html)
