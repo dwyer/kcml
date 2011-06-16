@@ -9,8 +9,8 @@ import os, re, sys
 from xml.dom.minidom import parseString
 
 
-META_TAGS = ['author', 'description', 'keywords']
-LINK_RELS = ['generator', 'icon', 'stylesheet']
+META_TAGS = ['author', 'description', 'keywords', 'generator']
+LINK_RELS = ['icon', 'stylesheet']
 SECTION_TAGS = ['body', 'section']
 HEADER_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 LIST_TAGS = ['ol', 'ul']
